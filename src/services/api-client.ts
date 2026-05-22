@@ -2,8 +2,8 @@
  * Base API client with error normalization.
  *
  * Two error shapes exist across the four backend services:
- * - Auth / Inventory / Order: { success, message, data, errors }
- * - Payment: RFC 9457 Problem Details { type, title, status, detail, instance, ...extra }
+ *  - Auth / Inventory / Order: { success, message, data, errors }
+ *  - Payment: RFC 9457 Problem Details { type, title, status, detail, instance, ...extra }
  *
  * This client detects which shape to use based on the `errorShape` parameter and
  * normalizes all errors into a single `ApiError` before throwing.
@@ -244,7 +244,6 @@ export function apiFetchFrom<T>(
   let baseUrl: string | undefined;
   let errorShape: ApiErrorShape;
 
-  // Next.js requires explicit process.env.NEXT_PUBLIC_* references
   switch (service) {
     case 'auth':
       baseUrl = process.env.NEXT_PUBLIC_AUTH_SERVICE_URL;

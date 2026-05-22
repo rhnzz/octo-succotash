@@ -44,28 +44,33 @@ function RatingStars({ rating }: { rating: number }) {
 // ProductCard
 // ---------------------------------------------------------------------------
 function ProductCard({ product }: { product: ProductResponse }) {
+  const p = product as any;
+  const productId = p.productId || p.product_id;
+  const serviceFee = p.serviceFee ?? p.service_fee ?? 0;
+  const avgRating = p.stats?.avgRating ?? p.stats?.avg_rating ?? 0;
+  const jastiperUsername = p.jastiper?.username ?? p.jastiper?.user_id;
+
   return (
     <Link
-      href={`/catalog/${product.productId}`}
+      href={`/catalog/${productId}`}
       className="group relative rounded-xl border border-gray-100 bg-white shadow-sm hover:shadow-md transition overflow-hidden"
     >
-      {product.mode === 'FLASH_SALE' && (
+      {p.mode === 'FLASH_SALE' && (
           <span className="absolute top-2 right-2 z-10 rounded bg-red-600 px-2 py-1 text-[10px] font-bold text-white uppercase tracking-wider shadow-sm">
         ⚡ Flash Sale
       </span>
       )}
-      {product.mode === 'PRE_ORDER' && (
+      {p.mode === 'PRE_ORDER' && (
           <span className="absolute top-2 right-2 z-10 rounded bg-blue-600 px-2 py-1 text-[10px] font-bold text-white uppercase tracking-wider shadow-sm">
         📦 Pre-Order
       </span>
       )}
 
       <div className="aspect-square bg-gray-100 overflow-hidden">
-        {product.images[0] ? (
-          // eslint-disable-next-line @next/next/no-img-element
+        {p.images && p.images[0] ? (
           <img
-            src={product.images[0]}
-            alt={product.name}
+            src={p.images[0]}
+            alt={p.name}
             className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-200"
           />
         ) : (
@@ -77,24 +82,24 @@ function ProductCard({ product }: { product: ProductResponse }) {
         )}
       </div>
       <div className="p-3">
-        <p className="text-sm font-medium text-gray-800 line-clamp-2 mb-1">{product.name}</p>
-        <p className="text-sm font-bold text-(--color-primary-dark)">{formatRupiah(product.price)}</p>
-        {product.serviceFee > 0 && (
-          <p className="text-xs text-gray-400">+ {formatRupiah(product.serviceFee)} jasa</p>
+        <p className="text-sm font-medium text-gray-800 line-clamp-2 mb-1">{p.name}</p>
+        <p className="text-sm font-bold text-(--color-primary-dark)">{formatRupiah(p.price)}</p>
+        {serviceFee > 0 && (
+          <p className="text-xs text-gray-400">+ {formatRupiah(serviceFee)} jasa</p>
         )}
-        {product.stats.avgRating > 0 && (
+        {avgRating > 0 && (
           <div className="mt-1.5">
-            <RatingStars rating={product.stats.avgRating} />
+            <RatingStars rating={avgRating} />
           </div>
         )}
-        {product.status === 'OUT_OF_STOCK' && (
+        {p.status === 'OUT_OF_STOCK' && (
           <span className="mt-1 inline-block rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">
             Stok Habis
           </span>
         )}
-        {product.jastiper.username && (
+        {jastiperUsername && (
           <p className="mt-1 text-xs text-gray-400 truncate">
-            oleh {product.jastiper.username}
+            oleh {jastiperUsername}
           </p>
         )}
       </div>
@@ -197,10 +202,7 @@ function CatalogContent() {
         setTotalItems(data.pagination.total);
         setTotalPages(data.pagination.total_pages);
       })
-      .catch((err) => {
-        // 🔴 TAMBAHKAN BARIS INI BIAR ERORNYA MUNCUL
-        console.error("CEK EROR INI RAI:", err); 
-
+      .catch(() => {
         if (!cancelled) setError('Gagal memuat produk. Coba lagi.');
       })
       .finally(() => {

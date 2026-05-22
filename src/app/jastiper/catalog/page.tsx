@@ -42,6 +42,7 @@ function formatRupiah(amount: number) {
 }
 
 function formatDate(iso: string) {
+  if (!iso) return '-';
   return new Date(iso).toLocaleDateString('id-ID', {
     day: 'numeric',
     month: 'short',
@@ -59,7 +60,7 @@ function StatusBadge({ status }: { status: ProductStatus }) {
     HIDDEN: { label: 'Disembunyikan', cls: 'bg-yellow-100 text-yellow-700' },
     REMOVED_BY_ADMIN: { label: 'Dihapus Admin', cls: 'bg-red-100 text-red-700' },
   };
-  const { label, cls } = map[status];
+  const { label, cls } = map[status] || { label: status, cls: 'bg-gray-100 text-gray-600' };
   return (
     <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${cls}`}>
       {label}
@@ -251,11 +252,15 @@ export default function JastiperCatalogPage() {
   // ---------------------------------------------------------------------------
   async function toggleVisibility(product: ProductResponse) {
     if (!accessToken) return;
-    const newStatus: 'ACTIVE' | 'HIDDEN' = product.status === 'HIDDEN' ? 'ACTIVE' : 'HIDDEN';
-    setActionLoading(product.productId);
+    const p = product as any;
+    const currentId = p.productId || p.product_id;
+    const currentStatus = p.status;
+    const newStatus: 'ACTIVE' | 'HIDDEN' = currentStatus === 'HIDDEN' ? 'ACTIVE' : 'HIDDEN';
+    setActionLoading(currentId);
     try {
-      const updated = await updateProduct(accessToken, product.productId, { status: newStatus });
-      setProducts((prev) => prev.map((p) => p.productId === updated.productId ? updated : p));
+      const updated = await updateProduct(accessToken, currentId, { status: newStatus });
+      const updatedId = updated.productId || (updated as any).product_id;
+      setProducts((prev) => prev.map((item) => (item.productId || (item as any).product_id) === updatedId ? updated : item));
       setToast({
         message: newStatus === 'HIDDEN' ? 'Produk berhasil disembunyikan' : 'Produk berhasil ditampilkan',
         type: 'success',
@@ -272,9 +277,11 @@ export default function JastiperCatalogPage() {
   // ---------------------------------------------------------------------------
   async function confirmDelete() {
     if (!accessToken || !deleteTarget) return;
+    const p = deleteTarget as any;
+    const currentId = p.productId || p.product_id;
     setDeleteLoading(true);
     try {
-      await deleteProduct(accessToken, deleteTarget.productId);
+      await deleteProduct(accessToken, currentId);
       setDeleteTarget(null);
       setToast({ message: 'Produk berhasil dihapus', type: 'success' });
       fetchProducts();
@@ -407,16 +414,20 @@ export default function JastiperCatalogPage() {
           </div>
         ) : (
           <div className="space-y-3">
-            {products.map((product) => (
-              <ProductRow
-                key={product.productId}
-                product={product}
-                actionLoading={actionLoading === product.productId}
-                onEdit={() => router.push(`/jastiper/catalog/${product.productId}/edit`)}
-                onToggleVisibility={() => toggleVisibility(product)}
-                onDelete={() => setDeleteTarget(product)}
-              />
-            ))}
+            {products.map((product) => {
+              const p = product as any;
+              const currentId = p.productId || p.product_id;
+              return (
+                <ProductRow
+                  key={currentId}
+                  product={product}
+                  actionLoading={actionLoading === currentId}
+                  onEdit={() => router.push(`/jastiper/catalog/${currentId}/edit`)}
+                  onToggleVisibility={() => toggleVisibility(product)}
+                  onDelete={() => setDeleteTarget(product)}
+                />
+              );
+            })}
           </div>
         )}
 
@@ -518,8 +529,14 @@ function ProductRow({
   onToggleVisibility: () => void;
   onDelete: () => void;
 }) {
-  const isRemovedByAdmin = product.status === 'REMOVED_BY_ADMIN';
-  const canToggle = product.status === 'ACTIVE' || product.status === 'HIDDEN';
+  const p = product as any;
+  const status = p.status;
+  const price = p.price;
+  const stock = p.stock;
+  const purchaseDate = p.purchaseDate || p.purchase_date || '';
+
+  const isRemovedByAdmin = status === 'REMOVED_BY_ADMIN';
+  const canToggle = status === 'ACTIVE' || status === 'HIDDEN';
 
   return (
     <div className={`flex flex-col sm:flex-row items-start sm:items-center gap-4 rounded-xl border bg-white p-4 transition ${
@@ -527,11 +544,11 @@ function ProductRow({
     }`}>
       {/* Product image */}
       <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-gray-100">
-        {product.images[0] ? (
+        {p.images && p.images[0] ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={product.images[0]}
-            alt={product.name}
+            src={p.images[0]}
+            alt={p.name}
             className="h-full w-full object-cover"
           />
         ) : (
@@ -546,19 +563,19 @@ function ProductRow({
       {/* Product info */}
       <div className="flex-1 min-w-0">
         <div className="flex flex-wrap items-center gap-2 mb-1">
-          <p className="font-medium text-gray-800 truncate">{product.name}</p>
-          <StatusBadge status={product.status} />
+          <p className="font-medium text-gray-800 truncate">{p.name}</p>
+          <StatusBadge status={status} />
           {isRemovedByAdmin && (
             <span className="text-xs text-red-600 font-medium">⚠ Dihapus oleh admin</span>
           )}
         </div>
         <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-500">
-          <span className="font-semibold text-(--color-primary-dark)">{formatRupiah(product.price)}</span>
-          <span>Stok: {product.stock}</span>
-          {product.category && <span>{product.category.name}</span>}
+          <span className="font-semibold text-(--color-primary-dark)">{formatRupiah(price)}</span>
+          <span>Stok: {stock}</span>
+          {p.category && <span>{p.category.name || 'Uncategorized'}</span>}
         </div>
         <p className="mt-0.5 text-xs text-gray-400">
-          Dibuat {formatDate(product.purchaseDate)}
+          Tanggal Beli: {purchaseDate ? formatDate(purchaseDate) : '-'}
         </p>
       </div>
 
@@ -580,14 +597,14 @@ function ProductRow({
             onClick={onToggleVisibility}
             disabled={actionLoading}
             className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition disabled:opacity-50 disabled:cursor-not-allowed ${
-              product.status === 'HIDDEN'
+              status === 'HIDDEN'
                 ? 'border-green-300 text-green-700 hover:bg-green-50'
                 : 'border-yellow-300 text-yellow-700 hover:bg-yellow-50'
             }`}
           >
             {actionLoading
               ? '...'
-              : product.status === 'HIDDEN'
+              : status === 'HIDDEN'
               ? 'Tampilkan'
               : 'Sembunyikan'}
           </button>

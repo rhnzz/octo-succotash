@@ -21,20 +21,21 @@ function formatRupiah(amount: number) {
 // ---------------------------------------------------------------------------
 // RatingStars
 // ---------------------------------------------------------------------------
-function RatingStars({ rating }: { rating: number }) {
+function RatingStars({ rating = 0 }: { rating?: number }) {
+  const safeRating = rating ?? 0;
   return (
     <span className="inline-flex items-center gap-0.5">
       {[1, 2, 3, 4, 5].map((star) => (
         <svg
           key={star}
-          className={`h-3.5 w-3.5 ${star <= Math.round(rating) ? 'text-yellow-400' : 'text-gray-200'}`}
+          className={`h-3.5 w-3.5 ${star <= Math.round(safeRating) ? 'text-yellow-400' : 'text-gray-200'}`}
           fill="currentColor"
           viewBox="0 0 20 20"
         >
           <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
         </svg>
       ))}
-      <span className="ml-1 text-xs text-gray-500">{rating.toFixed(1)}</span>
+      <span className="ml-1 text-xs text-gray-500">{safeRating.toFixed(1)}</span>
     </span>
   );
 }
@@ -43,17 +44,22 @@ function RatingStars({ rating }: { rating: number }) {
 // ProductCard
 // ---------------------------------------------------------------------------
 function ProductCard({ product }: { product: ProductResponse }) {
+  const p = product as any;
+  const productId = p.productId || p.product_id;
+  const avgRating = p.stats?.avgRating ?? p.stats?.avg_rating ?? 0;
+  const images = p.images ?? [];
+
   return (
     <Link
-      href={`/catalog/${product.productId}`}
+      href={`/catalog/${productId}`}
       className="group shrink-0 w-48 rounded-xl border border-gray-100 bg-white shadow-sm hover:shadow-md transition overflow-hidden"
     >
       <div className="aspect-square bg-gray-100 overflow-hidden">
-        {product.images[0] ? (
+        {images[0] ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={product.images[0]}
-            alt={product.name}
+            src={images[0]}
+            alt={p.name}
             className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-200"
           />
         ) : (
@@ -65,11 +71,11 @@ function ProductCard({ product }: { product: ProductResponse }) {
         )}
       </div>
       <div className="p-3">
-        <p className="text-xs font-medium text-gray-800 line-clamp-2 mb-1">{product.name}</p>
-        <p className="text-sm font-bold text-(--color-primary-dark)">{formatRupiah(product.price)}</p>
-        {product.stats.avgRating > 0 && (
+        <p className="text-xs font-medium text-gray-800 line-clamp-2 mb-1">{p.name}</p>
+        <p className="text-sm font-bold text-(--color-primary-dark)">{formatRupiah(p.price)}</p>
+        {avgRating > 0 && (
           <div className="mt-1">
-            <RatingStars rating={product.stats.avgRating} />
+            <RatingStars rating={avgRating} />
           </div>
         )}
       </div>
@@ -97,27 +103,33 @@ function ProductCardSkeleton() {
 // JastiperCard
 // ---------------------------------------------------------------------------
 function JastiperCard({ jastiper }: { jastiper: ProductJastiper }) {
-  if (!jastiper.username) return null;
+  const js = jastiper as any;
+  const username = js.username;
+  const avgRating = js.avgRating ?? js.avg_rating ?? 0;
+  const totalOrders = js.totalOrders ?? js.total_orders ?? 0;
+  const profilePictureUrl = js.profilePictureUrl || js.profile_picture_url;
+
+  if (!username) return null;
   return (
     <Link
-      href={`/jastiper/${jastiper.username}`}
+      href={`/jastiper/${username}`}
       className="group flex flex-col items-center gap-2 rounded-xl border border-gray-100 bg-white p-4 shadow-sm hover:shadow-md transition text-center w-36 shrink-0"
     >
-      {jastiper.profilePictureUrl ? (
+      {profilePictureUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={jastiper.profilePictureUrl}
-          alt={jastiper.username}
+          src={profilePictureUrl}
+          alt={username}
           className="h-14 w-14 rounded-full object-cover border-2 border-(--color-primary)"
         />
       ) : (
         <div className="h-14 w-14 rounded-full bg-(--color-primary) flex items-center justify-center text-white text-xl font-bold">
-          {jastiper.username[0].toUpperCase()}
+          {username[0].toUpperCase()}
         </div>
       )}
-      <p className="text-xs font-semibold text-gray-800 truncate w-full">{jastiper.username}</p>
-      <RatingStars rating={jastiper.avgRating} />
-      <p className="text-xs text-gray-500">{jastiper.totalOrders} pesanan</p>
+      <p className="text-xs font-semibold text-gray-800 truncate w-full">{username}</p>
+      <RatingStars rating={avgRating} />
+      <p className="text-xs text-gray-500">{totalOrders} pesanan</p>
     </Link>
   );
 }
@@ -133,14 +145,18 @@ export default function LandingPage() {
   const [categories, setCategories] = useState<CategoryResponse[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
 
-  // Derive top jastipers from product results (no dedicated endpoint)
   const topJastipers = (() => {
     const seen = new Set<string>();
     const result: ProductJastiper[] = [];
     for (const p of products) {
-      if (p.jastiper.username && !seen.has(p.jastiper.userId)) {
-        seen.add(p.jastiper.userId);
-        result.push(p.jastiper);
+      const js = p.jastiper as any;
+      if (!js) continue;
+      const uId = js.userId || js.user_id;
+      const uname = js.username;
+      
+      if (uname && uId && !seen.has(uId)) {
+        seen.add(uId);
+        result.push(js);
         if (result.length >= 6) break;
       }
     }
@@ -182,7 +198,7 @@ export default function LandingPage() {
     <div className="min-h-screen bg-gray-50">
 
       {/* ------------------------------------------------------------------ */}
-      {/* Navbar (minimal inline — full Navbar component built in TASK-501)   */}
+      {/* Navbar                                                             */}
       {/* ------------------------------------------------------------------ */}
       <header className="sticky top-0 z-40 bg-(--color-primary-dark) shadow-sm">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
@@ -210,7 +226,7 @@ export default function LandingPage() {
       </header>
 
       {/* ------------------------------------------------------------------ */}
-      {/* 1. Hero Section                                                      */}
+      {/* 1. Hero Section                                                    */}
       {/* ------------------------------------------------------------------ */}
       <section className="bg-linear-to-br from-(--color-primary-dark) to-(--color-primary) px-4 py-20 text-center text-white">
         <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl">
@@ -238,7 +254,7 @@ export default function LandingPage() {
       </section>
 
       {/* ------------------------------------------------------------------ */}
-      {/* 2. Featured Products                                                 */}
+      {/* 2. Featured Products                                               */}
       {/* ------------------------------------------------------------------ */}
       <section className="mx-auto max-w-6xl px-4 py-12">
         <div className="mb-5 flex items-center justify-between">
@@ -258,14 +274,17 @@ export default function LandingPage() {
               ? (
                 <p className="text-sm text-gray-500 py-8">Belum ada produk tersedia.</p>
               )
-              : products.map((p) => <ProductCard key={p.productId} product={p} />)
+              : products.map((p) => {
+                  const id = p.productId || (p as any).product_id;
+                  return <ProductCard key={id} product={p} />;
+                })
             }
           </div>
         )}
       </section>
 
       {/* ------------------------------------------------------------------ */}
-      {/* 3. How It Works                                                      */}
+      {/* 3. How It Works                                                    */}
       {/* ------------------------------------------------------------------ */}
       <section className="bg-white px-4 py-14">
         <div className="mx-auto max-w-4xl">
@@ -319,7 +338,7 @@ export default function LandingPage() {
       </section>
 
       {/* ------------------------------------------------------------------ */}
-      {/* 4. Top Jastipers                                                     */}
+      {/* 4. Top Jastipers                                                   */}
       {/* ------------------------------------------------------------------ */}
       {(productsLoading || topJastipers.length > 0) && (
         <section className="mx-auto max-w-6xl px-4 py-12">
@@ -333,14 +352,17 @@ export default function LandingPage() {
                     <div className="h-3 w-16 rounded bg-gray-100 mx-auto" />
                   </div>
                 ))
-              : topJastipers.map((j) => <JastiperCard key={j.userId} jastiper={j} />)
+              : topJastipers.map((j) => {
+                  const id = j.userId || (j as any).user_id;
+                  return <JastiperCard key={id} jastiper={j} />;
+                })
             }
           </div>
         </section>
       )}
 
       {/* ------------------------------------------------------------------ */}
-      {/* 5. Category Quick Links                                              */}
+      {/* 5. Category Quick Links                                            */}
       {/* ------------------------------------------------------------------ */}
       <section className="bg-white px-4 py-12">
         <div className="mx-auto max-w-6xl">
@@ -368,7 +390,7 @@ export default function LandingPage() {
       </section>
 
       {/* ------------------------------------------------------------------ */}
-      {/* 6. Footer                                                            */}
+      {/* 6. Footer                                                          */}
       {/* ------------------------------------------------------------------ */}
       <footer className="bg-(--color-primary-dark) px-4 py-10 text-white">
         <div className="mx-auto max-w-6xl">

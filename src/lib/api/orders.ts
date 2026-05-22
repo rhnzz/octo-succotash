@@ -380,6 +380,26 @@ export interface InvalidStatusTransitionError {
 }
 
 /**
+ * Admin List Orders Response
+ * Response from GET /admin/orders endpoint.
+ */
+export interface GetAdminOrdersResponse {
+  success: boolean;
+  message: string;
+  data: PaginatedOrderResponse;
+}
+
+/**
+ * Admin Force Cancel Response
+ * Response from POST /admin/orders/{order_id}/force-cancel endpoint.
+ */
+export interface AdminForceCancelResponse {
+  success: boolean;
+  message: string;
+  data: Order;
+}
+
+/**
  * Generic Orders API client.
  * Add domain-specific functions here as endpoints get defined.
  */

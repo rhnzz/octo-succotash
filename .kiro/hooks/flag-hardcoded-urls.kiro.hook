@@ -1,0 +1,13 @@
+{
+  "name": "Flag Hardcoded URLs",
+  "version": "1.0.0",
+  "description": "Detects hardcoded localhost URLs or backend port numbers (8081–8084) in any TypeScript or TSX source file and reports the correct environment variable to use instead.",
+  "when": {
+    "type": "fileEdited",
+    "patterns": ["src/**/*.ts", "src/**/*.tsx"]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A source file was just saved. Scan it for any hardcoded localhost URLs or port numbers used in HTTP calls or base URL strings. Specifically look for: 'localhost:8081', 'localhost:8082', 'localhost:8083', 'localhost:8084', or any hardcoded 'http://localhost' string in fetch calls, service constructors, or base URL constants. These must always use environment variables instead:\n- Port 8081 / payment service → NEXT_PUBLIC_PAYMENT_SERVICE_URL\n- Port 8082 / auth service → NEXT_PUBLIC_AUTH_SERVICE_URL\n- Port 8083 / inventory service → NEXT_PUBLIC_INVENTORY_SERVICE_URL\n- Port 8084 / order service → NEXT_PUBLIC_ORDER_SERVICE_URL\nReport the line number and the correct env var to use. If no hardcoded URLs are found, stay silent."
+  }
+}

@@ -6,16 +6,16 @@
  * Access: ADMIN only (role guard enforced here + middleware guards /admin/*)
  *
  * API:
- *   GET  /admin/products?q=&status=&jastiperId=&page=&size=&sort=
- *   PATCH /admin/products/{id}/moderate  { action, reason }
+ * GET  /admin/products?q=&status=&jastiperId=&page=&size=&sort=
+ * PATCH /admin/products/{id}/moderate  { action, reason }
  *
  * ProductResponse fields are camelCase (productId, originCountry, purchaseDate, etc.)
  *
  * Moderation actions:
- *   HIDE     → status = HIDDEN
- *   REMOVE   → status = HIDDEN + deleted_at set (soft-delete)
- *   RESTORE  → status = ACTIVE, deleted_at cleared
- *   ACTIVATE → status = ACTIVE, deleted_at cleared
+ * HIDE     → status = HIDDEN
+ * REMOVE   → status = HIDDEN + deleted_at set (soft-delete)
+ * RESTORE  → status = ACTIVE, deleted_at cleared
+ * ACTIVATE → status = ACTIVE, deleted_at cleared
  * reason is required and logged in the moderation log.
  */
 
@@ -47,6 +47,7 @@ function formatRupiah(amount: number) {
 }
 
 function formatDate(dateStr: string) {
+  if (!dateStr) return '-';
   // purchaseDate is YYYY-MM-DD (LocalDate)
   return new Date(dateStr + 'T00:00:00').toLocaleDateString('id-ID', {
     day: 'numeric',
@@ -67,7 +68,7 @@ function StatusBadge({ status }: { status: ProductStatus }) {
   };
   const { label, cls } = map[status] ?? { label: status, cls: 'bg-gray-100 text-gray-600' };
   return (
-    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${cls}`}>
+    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${cls}`}>
       {label}
     </span>
   );
@@ -302,7 +303,7 @@ export default function AdminCatalogPage() {
   useEffect(() => {
     if (!authLoading) {
       if (!accessToken) { router.replace('/login'); return; }
-      if (user?.role !== 'ADMIN') { router.replace('/dashboard'); }
+      if (user && user.role !== 'ADMIN') { router.replace('/'); }
     }
   }, [authLoading, accessToken, user, router]);
 
@@ -310,7 +311,7 @@ export default function AdminCatalogPage() {
   // Fetch products
   // ---------------------------------------------------------------------------
   const fetchProducts = useCallback(() => {
-    if (!accessToken || user?.role !== 'ADMIN') return;
+    if (!accessToken) return;
     setLoading(true);
     setFetchError('');
 
@@ -333,11 +334,11 @@ export default function AdminCatalogPage() {
       .finally(() => setLoading(false));
   }, [accessToken, user, search, statusFilter, jastiperIdFilter, page]);
 
-  useEffect(() => {
-    if (!authLoading && accessToken && user?.role === 'ADMIN') {
+useEffect(() => {
+    if (!authLoading && accessToken) {
       fetchProducts();
     }
-  }, [authLoading, accessToken, user, fetchProducts]);
+  }, [authLoading, accessToken, fetchProducts]);
 
   // Debounced search
   useEffect(() => {
@@ -353,17 +354,19 @@ export default function AdminCatalogPage() {
   // ---------------------------------------------------------------------------
   async function handleModerate(action: ModerationAction, reason: string) {
     if (!accessToken || !moderateTarget) return;
+    const tgt = moderateTarget as any;
+    const currentId = tgt.productId || tgt.product_id;
     setModerating(true);
     try {
       const updated = await adminModerateProduct(
         accessToken,
-        moderateTarget.productId,
+        currentId,
         action,
         reason
       );
-      // Update the row in-place so the table reflects the new status immediately
+      const updatedId = updated.productId || (updated as any).product_id;
       setProducts((prev) =>
-        prev.map((p) => (p.productId === updated.productId ? updated : p))
+        prev.map((p) => ((p.productId || (p as any).product_id) === updatedId ? updated : p))
       );
       setModerateTarget(null);
       const actionLabel =
@@ -393,7 +396,8 @@ export default function AdminCatalogPage() {
     );
   }
 
-  if (!accessToken || user?.role !== 'ADMIN') return null;
+  if (!accessToken) return null;
+  if (user && user.role !== 'ADMIN') return null;
 
   const displayPage = page + 1;
   const selectCls =
@@ -555,113 +559,120 @@ export default function AdminCatalogPage() {
                     </td>
                   </tr>
                 ) : (
-                  products.map((product) => (
-                    <tr key={product.productId} className="transition hover:bg-gray-50">
-                      {/* Product name + thumbnail */}
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-gray-100">
-                            {product.images[0] ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img
-                                src={product.images[0]}
-                                alt={product.name}
-                                className="h-full w-full object-cover"
-                              />
-                            ) : (
-                              <div className="flex h-full w-full items-center justify-center text-gray-300">
-                                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={1}
-                                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                                  />
-                                </svg>
-                              </div>
-                            )}
+                  products.map((product) => {
+                    const p = product as any;
+                    const currentId = p.productId || p.product_id;
+                    const purchaseDate = p.purchaseDate || p.purchase_date || '';
+                    const jastiperUserId = p.jastiper?.userId || p.jastiper?.user_id || '';
+                    const jastiperUsername = p.jastiper?.username;
+
+                    return (
+                      <tr key={currentId} className="transition hover:bg-gray-50">
+                        {/* Product name + thumbnail */}
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-gray-100">
+                              {p.images && p.images[0] ? (
+                                <img
+                                  src={p.images[0]}
+                                  alt={p.name}
+                                  className="h-full w-full object-cover"
+                                />
+                              ) : (
+                                <div className="flex h-full w-full items-center justify-center text-gray-300">
+                                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={1}
+                                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                    />
+                                  </svg>
+                                </div>
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <Link
+                                href={`/catalog/${currentId}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="line-clamp-1 font-medium text-gray-900 transition hover:text-(--color-primary)"
+                              >
+                                {p.name}
+                              </Link>
+                              {p.category && (
+                                <p className="text-xs text-gray-400">{p.category.name || 'Uncategorized'}</p>
+                              )}
+                            </div>
                           </div>
-                          <div className="min-w-0">
+                        </td>
+
+                        {/* Jastiper */}
+                        <td className="px-4 py-3">
+                          {jastiperUsername ? (
                             <Link
-                              href={`/catalog/${product.productId}`}
+                              href={`/jastiper/${jastiperUsername}`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="line-clamp-1 font-medium text-gray-900 transition hover:text-(--color-primary)"
+                              className="text-sm text-gray-700 transition hover:text-(--color-primary)"
                             >
-                              {product.name}
+                              {jastiperUsername}
                             </Link>
-                            {product.category && (
-                              <p className="text-xs text-gray-400">{product.category.name}</p>
-                            )}
-                          </div>
-                        </div>
-                      </td>
+                          ) : (
+                            <span className="font-mono text-xs text-gray-400">
+                              {jastiperUserId ? `${jastiperUserId.slice(0, 8)}…` : '-'}
+                            </span>
+                          )}
+                        </td>
 
-                      {/* Jastiper */}
-                      <td className="px-4 py-3">
-                        {product.jastiper.username ? (
-                          <Link
-                            href={`/jastiper/${product.jastiper.username}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-sm text-gray-700 transition hover:text-(--color-primary)"
+                        {/* Price */}
+                        <td className="px-4 py-3 text-sm font-medium text-gray-800">
+                          {formatRupiah(p.price)}
+                        </td>
+
+                        {/* Stock */}
+                        <td className="px-4 py-3">
+                          <span
+                            className={`text-sm font-medium ${
+                              p.stock === 0 ? 'text-red-500' : 'text-gray-700'
+                            }`}
                           >
-                            {product.jastiper.username}
-                          </Link>
-                        ) : (
-                          <span className="font-mono text-xs text-gray-400">
-                            {product.jastiper.userId.slice(0, 8)}…
+                            {p.stock}
                           </span>
-                        )}
-                      </td>
+                        </td>
 
-                      {/* Price */}
-                      <td className="px-4 py-3 text-sm font-medium text-gray-800">
-                        {formatRupiah(product.price)}
-                      </td>
+                        {/* Status */}
+                        <td className="px-4 py-3">
+                          <StatusBadge status={p.status} />
+                        </td>
 
-                      {/* Stock */}
-                      <td className="px-4 py-3">
-                        <span
-                          className={`text-sm font-medium ${
-                            product.stock === 0 ? 'text-red-500' : 'text-gray-700'
-                          }`}
-                        >
-                          {product.stock}
-                        </span>
-                      </td>
+                        {/* Purchase date */}
+                        <td className="px-4 py-3 text-xs text-gray-500">
+                          {purchaseDate ? formatDate(purchaseDate) : '-'}
+                        </td>
 
-                      {/* Status */}
-                      <td className="px-4 py-3">
-                        <StatusBadge status={product.status} />
-                      </td>
-
-                      {/* Purchase date */}
-                      <td className="px-4 py-3 text-xs text-gray-500">
-                        {formatDate(product.purchaseDate)}
-                      </td>
-
-                      {/* Actions */}
-                      <td className="px-4 py-3">
-                        <div className="flex items-center justify-end gap-2">
-                          <Link
-                            href={`/catalog/${product.productId}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="rounded-lg border border-gray-300 px-3 py-1 text-xs text-gray-700 transition hover:bg-gray-50"
-                          >
-                            Lihat
-                          </Link>
-                          <button
-                            onClick={() => setModerateTarget(product)}
-                            className="rounded-lg border border-(--color-primary) px-3 py-1 text-xs font-medium text-(--color-primary) transition hover:bg-green-50"
-                          >
-                            Moderasi
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                        {/* Actions */}
+                        <td className="px-4 py-3">
+                          <div className="flex items-center justify-end gap-2">
+                            <Link
+                              href={`/catalog/${currentId}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="rounded-lg border border-gray-300 px-3 py-1 text-xs text-gray-700 transition hover:bg-gray-50"
+                            >
+                              Lihat
+                            </Link>
+                            <button
+                              onClick={() => setModerateTarget(product)}
+                              className="rounded-lg border border-(--color-primary) px-3 py-1 text-xs font-medium text-(--color-primary) transition hover:bg-green-50"
+                            >
+                              Moderasi
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>

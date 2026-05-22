@@ -1,0 +1,13 @@
+{
+  "name": "Check Admin Role Guards",
+  "version": "1.0.0",
+  "description": "Ensures every admin page and component has a role guard checking role === 'ADMIN' before rendering any admin-only UI.",
+  "when": {
+    "type": "fileEdited",
+    "patterns": ["src/app/**/admin/**/*.tsx", "src/components/admin/**/*.tsx"]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "An admin page or component was just saved. Check whether it has a role guard that verifies the user's role is ADMIN before rendering admin-only UI. A valid guard is any of: an explicit check like `role === 'ADMIN'` or `user.role === 'ADMIN'`, a wrapper component like `<AdminGuard>`, a HOC like `withAdminAuth`, or a redirect in a server component that checks the role from the session/token. If the component renders admin UI (forms, tables, action buttons, sensitive data) without any visible role check, report it and suggest adding a guard. If a guard is present, stay silent."
+  }
+}

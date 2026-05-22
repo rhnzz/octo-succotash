@@ -1,0 +1,13 @@
+{
+  "name": "Error Shape Consistency",
+  "version": "1.0.0",
+  "description": "Verifies that error handling in service files parses the correct error shape for the target backend — RFC 9457 Problem Details for the payment service, { success, message } envelope for all others.",
+  "when": {
+    "type": "fileEdited",
+    "patterns": ["src/services/**/*.ts"]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A service file in src/services/ was just saved. Check that any error handling in this file parses the correct error shape for its target backend service:\n\n- payment.service.ts (targets NEXT_PUBLIC_PAYMENT_SERVICE_URL): errors use RFC 9457 Problem Details format. Error parsing must read 'detail' (not 'message') and 'status' fields. Extra fields like 'balance', 'required', 'current_balance' may also be present. If this file catches errors but reads 'message' or 'success' instead of 'detail', report it.\n\n- auth.service.ts, inventory.service.ts, order.service.ts (targets other services): errors use the { success, message, data, errors } envelope. Error parsing must read 'message' and optionally the 'errors' array for validation failures. If these files parse 'detail' or 'title' instead of 'message', report it.\n\n- api-client.ts: must handle BOTH shapes — detect which shape to use based on the base URL or a passed flag, then normalize into ApiError { status, message, field?, extra? }.\n\nIf error handling is absent entirely, stay silent (absence is acceptable). Only report when the wrong shape is being parsed. Stay silent if everything is correct."
+  }
+}

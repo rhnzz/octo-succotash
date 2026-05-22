@@ -235,7 +235,6 @@ export default function ProductDetailPage() {
       );
     }
 
-    // TITIPERS who own the product (guard)
     if (isOwner) {
       return (
         <div className="relative group">
@@ -319,7 +318,6 @@ export default function ProductDetailPage() {
     );
   }
 
-  // --- NORMALIZATION DATA AMAN (Menerima camelCase & snake_case) ---
   const p = product as any;
   const serviceFee = p.serviceFee ?? p.service_fee ?? 0;
   const total = p.price + serviceFee;

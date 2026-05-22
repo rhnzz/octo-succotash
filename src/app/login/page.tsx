@@ -31,17 +31,15 @@ function LoginForm() {
       const data = await login({ email, password });
 
       // Store access token + user info in context.
-      // The backend returns the access token in `refresh_token` (naming quirk).
       setAccessToken(data.refresh_token, data.user);
 
-      // Role-based redirect
-      const role = data.user.role;
+      const role = data.user?.role?.toUpperCase();
       if (role === 'ADMIN') {
-        router.push('/admin/dashboard');
+        router.push('/admin/catalog');
       } else if (role === 'JASTIPER') {
-        router.push('/jastiper/dashboard');
+        router.push('/jastiper/catalog');
       } else {
-        router.push('/dashboard');
+        router.push('/');
       }
     } catch (err) {
       if (isApiError(err)) {

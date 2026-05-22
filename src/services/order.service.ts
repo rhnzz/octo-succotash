@@ -34,6 +34,8 @@ import {
   RateProductRequest,
   RateProductResponse,
   GetProductRatingResponse,
+  GetAdminOrdersResponse,
+  AdminForceCancelResponse,
 } from '@/lib/api/orders';
 
 // Re-export types for backward compatibility
@@ -62,6 +64,8 @@ export type {
   RateProductRequest,
   RateProductResponse,
   GetProductRatingResponse,
+  GetAdminOrdersResponse,
+  AdminForceCancelResponse,
 };
 
 // Aliases for backward compatibility
@@ -493,6 +497,81 @@ export async function getProductRating(
     {
       method: 'GET',
       token,
+    }
+  );
+  return response.data;
+}
+
+// ---------------------------------------------------------------------------
+// adminGetOrders
+// GET /admin/orders
+// Protected — ADMIN role only
+// ---------------------------------------------------------------------------
+
+export type AdminOrderListParams = OrderListParams & {
+  status?: string;
+  search?: string;
+};
+
+/**
+ * Get all orders in the system (admin view).
+ * Supports pagination, status filtering, and search by order_id.
+ *
+ * @param token - JWT access token
+ * @param params - Optional pagination, status filter, and search parameters
+ * @returns Paginated list of all orders
+ * @throws ApiError if user is not an admin
+ */
+export async function adminGetOrders(
+  token: string,
+  params?: AdminOrderListParams
+): Promise<PaginatedOrderResponse> {
+  const query = new URLSearchParams();
+  if (params) {
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined) query.set(k, String(v));
+    });
+  }
+  const qs = query.toString();
+  const response = await orderRequest<GetAdminOrdersResponse>(
+    `/admin/orders${qs ? `?${qs}` : ''}`,
+    {
+      method: 'GET',
+      token,
+    }
+  );
+  return response.data;
+}
+
+// ---------------------------------------------------------------------------
+// adminForceCancel
+// POST /admin/orders/:order_id/force-cancel
+// Protected — ADMIN role only
+// ---------------------------------------------------------------------------
+
+/**
+ * Force cancel an order by admin.
+ * Can cancel orders in any non-terminal state.
+ *
+ * @param token - JWT access token
+ * @param orderId - Order UUID
+ * @param cancellationReason - Required reason for cancellation (max 500 chars)
+ * @returns The updated Order object
+ * @throws ApiError if order is in terminal state or user is not an admin
+ */
+export async function adminForceCancel(
+  token: string,
+  orderId: string,
+  cancellationReason: string
+): Promise<Order> {
+  const response = await orderRequest<AdminForceCancelResponse>(
+    `/admin/orders/${encodeURIComponent(orderId)}/force-cancel`,
+    {
+      method: 'POST',
+      token,
+      body: {
+        cancellation_reason: cancellationReason,
+      },
     }
   );
   return response.data;

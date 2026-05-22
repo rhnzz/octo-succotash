@@ -219,12 +219,12 @@ export type CreateProductInput = {
   price: number;
   stock: number;
   mode?: ShoppingMode;
-  flash_sale_start?: string;
-  flash_sale_end?: string;
+  flash_sale_start?: string | null;
+  flash_sale_end?: string | null;
   origin_country: string;
   purchase_date: string;
-  category_id?: number;
-  weight_gram?: number;
+  category_id?: number | null;
+  weight_gram?: number | null;
   service_fee?: number;
   images?: string[];
   tags?: string[];
@@ -250,15 +250,15 @@ export type UpdateProductInput = Partial<{
   description: string;
   price: number;
   stock: number;
-  status: 'ACTIVE' | 'OUT_OF_STOCK' | 'HIDDEN';
+  status: ProductStatus;
   mode: ShoppingMode;
-  flashSaleStart: string | null;
-  flashSaleEnd: string | null;
-  categoryId: number;
-  originCountry: string;
-  purchaseDate: string;
-  serviceFee: number;
-  weightGram: number;
+  flash_sale_start: string | null;
+  flash_sale_end: string | null;
+  category_id: number | null;
+  origin_country: string;
+  purchase_date: string;
+  service_fee: number;
+  weight_gram: number | null;
   images: string[];
   tags: string[];
 }>;
@@ -270,7 +270,7 @@ export async function updateProduct(
 ): Promise<ProductResponse> {
   return inventoryRequest<ProductResponse>(
       `/products/${encodeURIComponent(productId)}`,
-      { method: 'PATCH', token, body: input } // ✅ Disesuaikan dengan @PatchMapping di Spring Boot
+      { method: 'PATCH', token, body: input }
   );
 }
 
@@ -366,15 +366,16 @@ export async function adminGetAllProducts(
 // ---------------------------------------------------------------------------
 
 export async function adminModerateProduct(
-    token: string,
-    productId: string,
-    action: ModerationAction,
-    reason: string
-): Promise<ProductResponse> {
-  return inventoryRequest<ProductResponse>(
-      `/admin/products/${encodeURIComponent(productId)}/moderate`,
-      { method: 'POST', token, body: { action, reason } } 
-  );
+  token: string,
+  productId: string,
+  action: ModerationAction,
+  reason: string
+) {
+  return inventoryRequest<ProductResponse>(`/admin/products/${productId}/moderate`, {
+    method: 'PATCH', 
+    token,
+    body: { action, reason }, 
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -408,7 +409,7 @@ export async function adminUpdateCategory(
     input: CreateCategoryInput
 ): Promise<CategoryResponse> {
   return inventoryRequest<CategoryResponse>(`/admin/categories/${categoryId}`, {
-    method: 'PATCH', // ✅ Disesuaikan dengan @PatchMapping di Spring Boot
+    method: 'PATCH', 
     token,
     body: input,
   });
@@ -432,9 +433,9 @@ export async function uploadImageS3(token: string, file: File): Promise<string> 
   const formData = new FormData();
   formData.append('file', file);
 
-  const baseUrl = process.env.NEXT_PUBLIC_INVENTORY_SERVICE_URL || 'http://localhost:8080/api/inventory';
+  const baseUrl = process.env.NEXT_PUBLIC_INVENTORY_SERVICE_URL || 'http://localhost:8083';
 
-  const res = await fetch(`${baseUrl}/products/images/upload`, {
+  const res = await fetch(`${baseUrl}/api/products/images/upload`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`

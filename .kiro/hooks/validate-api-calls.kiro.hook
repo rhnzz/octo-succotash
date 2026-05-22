@@ -1,0 +1,13 @@
+{
+  "name": "Validate API Calls Against Contracts",
+  "version": "1.0.0",
+  "description": "Cross-references every HTTP call in service files against the backend contracts steering files to catch wrong base URLs, endpoint paths, HTTP methods, auth headers, and request body field names.",
+  "when": {
+    "type": "fileEdited",
+    "patterns": ["src/services/**/*.ts"]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A service file in src/services/ was just saved. Scan every HTTP call in this file and cross-reference it against the backend-contracts steering files. Check all of the following:\n1. The base URL uses the correct env var for the target service (NEXT_PUBLIC_AUTH_SERVICE_URL for auth, NEXT_PUBLIC_INVENTORY_SERVICE_URL for inventory, NEXT_PUBLIC_ORDER_SERVICE_URL for orders, NEXT_PUBLIC_PAYMENT_SERVICE_URL for payment).\n2. The endpoint path and HTTP method exactly match the contract (e.g. PATCH not PUT, correct path segments).\n3. Protected endpoints include an Authorization Bearer header; public endpoints do not require it.\n4. X-Service-Key is never used — internal endpoints are forbidden from the frontend.\n5. Request body field names match the contract — payment service requires snake_case for all fields; other services follow their per-endpoint contract.\nReport each violation with the line number and the correct usage. If everything is correct, stay silent."
+  }
+}
