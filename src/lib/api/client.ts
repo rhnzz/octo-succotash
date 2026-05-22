@@ -18,6 +18,23 @@ export class ApiError extends Error {
 }
 
 function getBaseUrlFor(service: ApiService): string {
+  const isClient = typeof window !== 'undefined';
+
+  if (isClient) {
+    switch (service) {
+      case 'auth':
+        return '/api/auth';
+      case 'payment':
+        return '/api/payment';
+      case 'inventory':
+        return '/api/inventory';
+      case 'orders':
+        return '/api/order';
+      default:
+        throw new Error(`Unknown service: ${service}`);
+    }
+  }
+
   const envKeyByService: Record<ApiService, string> = {
     auth: 'NEXT_PUBLIC_AUTH_SERVICE_URL',
     payment: 'NEXT_PUBLIC_PAYMENT_SERVICE_URL',

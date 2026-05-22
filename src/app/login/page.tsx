@@ -13,6 +13,7 @@ import { useAuth } from '@/lib/auth/AuthProvider';
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const redirectedFrom = searchParams.get('redirectedFrom');
   const { setAccessToken } = useAuth();
 
   const successMessage = searchParams.get('success') ?? '';
@@ -39,7 +40,7 @@ function LoginForm() {
       } else if (role === 'JASTIPER') {
         router.push('/jastiper/catalog');
       } else {
-        router.push('/');
+        router.push(redirectedFrom || '/dashboard');
       }
     } catch (err) {
       if (isApiError(err)) {

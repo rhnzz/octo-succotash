@@ -174,51 +174,35 @@ export async function apiRequest<T>(options: ApiRequestOptions): Promise<T> {
 type ServiceRequestOptions = Omit<ApiRequestOptions, 'baseUrl' | 'errorShape' | 'path'>;
 
 export function authRequest<T>(path: string, options: ServiceRequestOptions): Promise<T> {
-  const baseUrl = process.env.NEXT_PUBLIC_AUTH_SERVICE_URL;
-  if (!baseUrl) throw new Error('NEXT_PUBLIC_AUTH_SERVICE_URL is not set.');
-  
-  return apiRequest<T>({
-    ...options,
-    baseUrl,
-    path,
-    errorShape: 'envelope',
-  });
+  const isClient = typeof window !== 'undefined';
+  const baseUrl = isClient ? '/api/auth' : process.env.NEXT_PUBLIC_AUTH_SERVICE_URL;
+  if (!baseUrl) throw new Error('AUTH_SERVICE_URL is not set.');
+
+  return apiRequest<T>({ ...options, baseUrl, path, errorShape: 'envelope' });
 }
 
 export function inventoryRequest<T>(path: string, options: ServiceRequestOptions): Promise<T> {
-  const baseUrl = process.env.NEXT_PUBLIC_INVENTORY_SERVICE_URL;
-  if (!baseUrl) throw new Error('NEXT_PUBLIC_INVENTORY_SERVICE_URL is not set.');
-  
-  return apiRequest<T>({
-    ...options,
-    baseUrl,
-    path,
-    errorShape: 'envelope',
-  });
+  const isClient = typeof window !== 'undefined';
+  const baseUrl = isClient ? '/api/inventory' : process.env.NEXT_PUBLIC_INVENTORY_SERVICE_URL;
+  if (!baseUrl) throw new Error('INVENTORY_SERVICE_URL is not set.');
+
+  return apiRequest<T>({ ...options, baseUrl, path, errorShape: 'envelope' });
 }
 
 export function orderRequest<T>(path: string, options: ServiceRequestOptions): Promise<T> {
-  const baseUrl = process.env.NEXT_PUBLIC_ORDER_SERVICE_URL;
-  if (!baseUrl) throw new Error('NEXT_PUBLIC_ORDER_SERVICE_URL is not set.');
-  
-  return apiRequest<T>({
-    ...options,
-    baseUrl,
-    path,
-    errorShape: 'envelope',
-  });
+  const isClient = typeof window !== 'undefined';
+  const baseUrl = isClient ? '/api/order' : process.env.NEXT_PUBLIC_ORDER_SERVICE_URL;
+  if (!baseUrl) throw new Error('ORDER_SERVICE_URL is not set.');
+
+  return apiRequest<T>({ ...options, baseUrl, path, errorShape: 'envelope' });
 }
 
 export function paymentRequest<T>(path: string, options: ServiceRequestOptions): Promise<T> {
-  const baseUrl = process.env.NEXT_PUBLIC_PAYMENT_SERVICE_URL;
-  if (!baseUrl) throw new Error('NEXT_PUBLIC_PAYMENT_SERVICE_URL is not set.');
-  
-  return apiRequest<T>({
-    ...options,
-    baseUrl,
-    path,
-    errorShape: 'problem-details',
-  });
+  const isClient = typeof window !== 'undefined';
+  const baseUrl = isClient ? '/api/payment' : process.env.NEXT_PUBLIC_PAYMENT_SERVICE_URL;
+  if (!baseUrl) throw new Error('PAYMENT_SERVICE_URL is not set.');
+
+  return apiRequest<T>({ ...options, baseUrl, path, errorShape: 'problem-details' });
 }
 
 // ---------------------------------------------------------------------------
@@ -232,33 +216,36 @@ export type ApiService = 'auth' | 'payment' | 'inventory' | 'orders';
  * Matches the `apiFetchFrom(service, path, options)` contract from the spec.
  */
 export function apiFetchFrom<T>(
-  service: ApiService,
-  path: string,
-  options?: {
-    method?: string;
-    body?: unknown;
-    token?: string;
-    headers?: Record<string, string>;
-  }
+    service: ApiService,
+    path: string,
+    options?: {
+      method?: string;
+      body?: unknown;
+      token?: string;
+      headers?: Record<string, string>;
+    }
 ): Promise<T> {
   let baseUrl: string | undefined;
   let errorShape: ApiErrorShape;
 
+  const isClient = typeof window !== 'undefined';
+
   switch (service) {
     case 'auth':
-      baseUrl = process.env.NEXT_PUBLIC_AUTH_SERVICE_URL;
+      baseUrl = isClient ? '/api/auth' : process.env.NEXT_PUBLIC_AUTH_SERVICE_URL;
       errorShape = 'envelope';
       break;
     case 'payment':
-      baseUrl = process.env.NEXT_PUBLIC_PAYMENT_SERVICE_URL;
+      baseUrl = isClient ? '/api/payment' : process.env.NEXT_PUBLIC_PAYMENT_SERVICE_URL;
       errorShape = 'problem-details';
       break;
     case 'inventory':
-      baseUrl = process.env.NEXT_PUBLIC_INVENTORY_SERVICE_URL;
+      baseUrl = isClient ? '/api/inventory' : process.env.NEXT_PUBLIC_INVENTORY_SERVICE_URL;
       errorShape = 'envelope';
       break;
     case 'orders':
-      baseUrl = process.env.NEXT_PUBLIC_ORDER_SERVICE_URL;
+      // Mengarah ke rewrite /api/order yang sudah lu setup
+      baseUrl = isClient ? '/api/order' : process.env.NEXT_PUBLIC_ORDER_SERVICE_URL;
       errorShape = 'envelope';
       break;
     default:

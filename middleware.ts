@@ -12,13 +12,19 @@ function redirectToLogin(request: NextRequest) {
 }
 
 export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
   const token = request.cookies.get(REFRESH_TOKEN_COOKIE)?.value;
+
   if (!token) return redirectToLogin(request);
 
   const payload = await verifyJwt(token);
   if (!isLoggedIn(payload)) return redirectToLogin(request);
 
-  if (request.nextUrl.pathname.startsWith('/admin') && !isAdmin(payload)) {
+  if (pathname.startsWith('/admin') && !isAdmin(payload)) {
+    return redirectToLogin(request);
+  }
+
+  if (pathname.startsWith('/jastiper') && payload?.role !== 'JASTIPER' && !isAdmin(payload)) {
     return redirectToLogin(request);
   }
 
@@ -30,5 +36,13 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*'],
+  matcher: [
+    '/dashboard/:path*',
+    '/orders/:path*',
+    '/wallet/:path*',
+    '/profile/:path*',
+    '/jastiper/:path*',
+    '/checkout/:path*',
+    '/admin/:path*',
+  ],
 };

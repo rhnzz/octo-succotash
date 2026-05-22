@@ -168,6 +168,31 @@ function CatalogContent() {
     router.replace(`/catalog?${sp.toString()}`, { scroll: false });
   }, [router]);
 
+  useEffect(() => {
+    const urlQ = searchParams.get('q') ?? '';
+    const urlCategoryId = searchParams.get('categoryId') ?? '';
+    const urlMinPrice = searchParams.get('minPrice') ?? '';
+    const urlMaxPrice = searchParams.get('maxPrice') ?? '';
+    const urlOriginCountry = searchParams.get('origin_country') ?? '';
+    const urlDateFrom = searchParams.get('purchase_date_from') ?? '';
+    const urlDateTo = searchParams.get('purchase_date_to') ?? '';
+    const urlSortBy = searchParams.get('sortBy') ?? 'created_at';
+    const urlOrder = searchParams.get('order') ?? 'desc';
+    const urlPage = Number(searchParams.get('page') ?? '1');
+
+    if (urlQ !== q) setQ(urlQ);
+    if (urlQ !== qInput) setQInput(urlQ);
+    if (urlCategoryId !== categoryId) setCategoryId(urlCategoryId);
+    if (urlMinPrice !== minPrice) setMinPrice(urlMinPrice);
+    if (urlMaxPrice !== maxPrice) setMaxPrice(urlMaxPrice);
+    if (urlOriginCountry !== originCountry) setOriginCountry(urlOriginCountry);
+    if (urlDateFrom !== dateFrom) setDateFrom(urlDateFrom);
+    if (urlDateTo !== dateTo) setDateTo(urlDateTo);
+    if (urlSortBy !== sortBy) setSortBy(urlSortBy as any);
+    if (urlOrder !== order) setOrder(urlOrder as any);
+    if (urlPage !== page) setPage(urlPage);
+  }, [searchParams]);
+
   // ---------------------------------------------------------------------------
   // Fetch categories once
   // ---------------------------------------------------------------------------
