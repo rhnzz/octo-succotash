@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/octo-succotash.iml" filepath="$PROJECT_DIR$/.idea/octo-succotash.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/json-frontend.iml" filepath="$PROJECT_DIR$/.idea/json-frontend.iml" />
     </modules>
   </component>
 </project>
