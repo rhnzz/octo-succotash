@@ -1,6 +1,7 @@
 import { jwtVerify, type JWTPayload } from 'jose';
 
 export type JwtUserPayload = JWTPayload & {
+  // sub sudah otomatis ada di dalam JWTPayload (string | undefined)
   email?: string;
   role?: 'TITIPERS' | 'JASTIPER' | 'ADMIN';
 };
@@ -30,11 +31,11 @@ function getJwtSecret(): Uint8Array {
     throw new Error('JWT_SECRET is not set');
   }
 
-  // 1. Bersihkan spasi serta tanda kutip yang tidak sengaja ikut ter-copy ke Vercel Env
+  // Bersihkan spasi serta tanda kutip yang tidak sengaja ikut ter-copy ke Vercel Env
   const trimmedSecret = rawSecret.trim().replace(/^["']|["']$/g, '');
 
   try {
-    // 2. Jika string memiliki karakteristik Base64 valid (panjang >= 40 dan karakter base64),
+    // Jika string memiliki karakteristik Base64 valid (panjang >= 40 dan karakter base64),
     // urus menggunakan biner asli agar sinkron dengan implementasi Java Spring Boot
     if (trimmedSecret.length >= 40 && /^[A-Za-z0-9+/=]+$/.test(trimmedSecret)) {
       cachedJwtSecret = decodeBase64ToUint8Array(trimmedSecret);
@@ -60,3 +61,19 @@ export async function verifyJwt(token: string): Promise<JwtUserPayload | null> {
     return null;
   }
 }
+
+// ---------------------------------------------------------------------------
+// Helper Guards & Roles (Kembalikan ke tempat semula agar middleware bekerja)
+// ---------------------------------------------------------------------------
+
+export const isLoggedIn = (payload: JwtUserPayload | null): payload is JwtUserPayload => {
+  return Boolean(payload?.sub && payload?.role);
+};
+
+function hasRole(payload: JwtUserPayload | null, role: string): boolean {
+  return payload?.role === role;
+}
+
+export const isAdmin = (payload: JwtUserPayload | null): boolean => hasRole(payload, 'ADMIN');
+export const isTitipers = (payload: JwtUserPayload | null): boolean => hasRole(payload, 'TITIPERS');
+export const isJastiper = (payload: JwtUserPayload | null): boolean => hasRole(payload, 'JASTIPER');
