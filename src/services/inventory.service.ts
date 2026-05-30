@@ -433,7 +433,10 @@ export async function uploadImageS3(token: string, file: File): Promise<string> 
   const formData = new FormData();
   formData.append('file', file);
 
-  const baseUrl = process.env.NEXT_PUBLIC_INVENTORY_SERVICE_URL || 'http://localhost:8083';
+  const isBrowser = typeof window !== 'undefined';
+  const baseUrl = isBrowser
+      ? '/api/inventory'
+      : (process.env.NEXT_PUBLIC_INVENTORY_SERVICE_URL || 'http://localhost:8083');
 
   const res = await fetch(`${baseUrl}/api/products/images/upload`, {
     method: 'POST',

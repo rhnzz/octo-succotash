@@ -22,10 +22,10 @@ export class ApiError extends Error {
   readonly extra?: Record<string, unknown>;
 
   constructor(
-    status: number,
-    message: string,
-    field?: string,
-    extra?: Record<string, unknown>
+      status: number,
+      message: string,
+      field?: string,
+      extra?: Record<string, unknown>
   ) {
     super(message);
     this.name = 'ApiError';
@@ -75,10 +75,10 @@ function normalizeEnvelopeError(status: number, body: unknown): ApiError {
   const firstError = b?.errors?.[0];
   const field = firstError?.field ?? undefined;
   const message =
-    firstError?.message ??
-    firstError?.error ??
-    b?.message ??
-    `Request failed (HTTP ${status}).`;
+      firstError?.message ??
+      firstError?.error ??
+      b?.message ??
+      `Request failed (HTTP ${status}).`;
   return new ApiError(status, message, field);
 }
 
@@ -273,12 +273,12 @@ export function apiFetchFrom<T>(
  * Does NOT prepend a service base URL — `path` must be an absolute path like `/api/auth/login`.
  */
 export async function appFetch<T>(
-  path: string,
-  options?: {
-    method?: string;
-    body?: unknown;
-    headers?: Record<string, string>;
-  }
+    path: string,
+    options?: {
+      method?: string;
+      body?: unknown;
+      headers?: Record<string, string>;
+    }
 ): Promise<T> {
   const res = await fetch(path, {
     method: options?.method ?? 'GET',
@@ -302,24 +302,24 @@ export async function appFetch<T>(
 
 /** Convenience wrapper — Auth service */
 export const authFetch = <T>(
-  path: string,
-  opts?: Parameters<typeof apiFetchFrom>[2]
+    path: string,
+    opts?: Parameters<typeof apiFetchFrom>[2]
 ): Promise<T> => apiFetchFrom<T>('auth', path, opts);
 
 /** Convenience wrapper — Payment service */
 export const paymentFetch = <T>(
-  path: string,
-  opts?: Parameters<typeof apiFetchFrom>[2]
+    path: string,
+    opts?: Parameters<typeof apiFetchFrom>[2]
 ): Promise<T> => apiFetchFrom<T>('payment', path, opts);
 
 /** Convenience wrapper — Inventory service */
 export const inventoryFetch = <T>(
-  path: string,
-  opts?: Parameters<typeof apiFetchFrom>[2]
+    path: string,
+    opts?: Parameters<typeof apiFetchFrom>[2]
 ): Promise<T> => apiFetchFrom<T>('inventory', path, opts);
 
 /** Convenience wrapper — Orders service */
 export const ordersFetch = <T>(
-  path: string,
-  opts?: Parameters<typeof apiFetchFrom>[2]
+    path: string,
+    opts?: Parameters<typeof apiFetchFrom>[2]
 ): Promise<T> => apiFetchFrom<T>('orders', path, opts);

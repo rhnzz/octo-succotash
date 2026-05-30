@@ -27,6 +27,7 @@ import { useAuth } from '@/lib/auth/AuthProvider';
 import {
   adminGetAllProducts,
   adminModerateProduct,
+  adminCreateCategory,
   isApiError,
 } from '@/services/inventory.service';
 import type {
@@ -297,6 +298,11 @@ export default function AdminCatalogPage() {
   // Toast
   const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
 
+  // Add Category States
+  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
+  const [categoryName, setCategoryName] = useState('');
+  const [categoryCreating, setCategoryCreating] = useState(false);
+
   // ---------------------------------------------------------------------------
   // Auth guard — ADMIN only
   // ---------------------------------------------------------------------------
@@ -385,6 +391,29 @@ useEffect(() => {
     }
   }
 
+  async function handleCreateCategory(e: React.FormEvent) {
+    e.preventDefault();
+    if (!accessToken || !categoryName.trim()) return;
+
+    setCategoryCreating(true);
+    try {
+      await adminCreateCategory(accessToken, { name: categoryName.trim() });
+
+      setToast({ message: 'Kategori baru berhasil ditambahkan!', type: 'success' });
+      setCategoryName('');
+      setIsCategoryOpen(false);
+
+      fetchProducts();
+    } catch (err) {
+      setToast({
+        message: isApiError(err) ? err.message : 'Gagal menambahkan kategori',
+        type: 'error',
+      });
+    } finally {
+      setCategoryCreating(false);
+    }
+  }
+
   // ---------------------------------------------------------------------------
   // Render guards
   // ---------------------------------------------------------------------------
@@ -436,11 +465,20 @@ useEffect(() => {
 
       <div className="mx-auto max-w-7xl px-4 py-8">
         {/* Page header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Semua Produk</h1>
-          {!loading && (
-            <p className="mt-1 text-sm text-gray-500">{totalItems} produk terdaftar</p>
-          )}
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Semua Produk</h1>
+            {!loading && (
+                <p className="mt-1 text-sm text-gray-500">{totalItems} produk terdaftar</p>
+            )}
+          </div>
+
+          <button
+              onClick={() => setIsCategoryOpen(true)}
+              className="rounded-xl bg-(--color-primary) px-4 py-2 text-sm font-semibold text-white hover:bg-(--color-primary-dark) transition shadow-sm"
+          >
+            + Kategori
+          </button>
         </div>
 
         {/* Filters */}
@@ -745,6 +783,50 @@ useEffect(() => {
           onClose={() => setModerateTarget(null)}
           loading={moderating}
         />
+      )}
+
+      {/* Modal Popup Tambah Kategori */}
+      {isCategoryOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" role="dialog" aria-modal="true">
+            <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+              <h2 className="text-lg font-bold text-gray-900 mb-4">Tambah Kategori Baru</h2>
+
+              <form onSubmit={handleCreateCategory}>
+                <div className="mb-5">
+                  <label htmlFor="cat-name" className="mb-1.5 block text-sm font-medium text-gray-700">
+                    Nama Kategori <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                      id="cat-name"
+                      type="text"
+                      required
+                      value={categoryName}
+                      onChange={(e) => setCategoryName(e.target.value)}
+                      placeholder="Contoh: Elektronik, Pakaian, Makanan..."
+                      className="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm text-gray-900 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-(--color-primary)"
+                  />
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                      type="button"
+                      onClick={() => { setIsCategoryOpen(false); setCategoryName(''); }}
+                      disabled={categoryCreating}
+                      className="flex-1 rounded-xl border border-gray-300 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition"
+                  >
+                    Batal
+                  </button>
+                  <button
+                      type="submit"
+                      disabled={categoryCreating || !categoryName.trim()}
+                      className="flex-1 rounded-xl bg-(--color-primary) py-2.5 text-sm font-semibold text-white hover:bg-(--color-primary-dark) disabled:opacity-50 transition"
+                  >
+                    {categoryCreating ? 'Menyimpan...' : 'Simpan'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
       )}
 
       {/* Toast */}

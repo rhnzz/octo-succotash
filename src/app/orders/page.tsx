@@ -48,13 +48,12 @@ export default function OrdersPage() {
     setLoading(true);
     setError('');
     try {
-      const params: Record<string, number | string> = { page, limit };
-
+      const params: Record<string, number | string> = { page, limit, sort_by: 'created_at', order: 'Desc' };
       const result = await getMyPurchases(accessToken, params);
       const allOrders = result.data;
       const filtered = statusFilter === 'ALL'
-          ? allOrders
-          : allOrders.filter((o) => o.status === statusFilter);
+        ? allOrders
+        : allOrders.filter((o) => o.status === statusFilter);
       setOrders(filtered);
       setTotalItems(result.pagination.total_items);
       setTotalPages(result.pagination.total_pages);
